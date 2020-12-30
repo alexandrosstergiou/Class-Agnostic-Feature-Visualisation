@@ -33,8 +33,6 @@ import matplotlib.image as mpimg
 import seaborn as sns
 from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationBbox
 
-import imageio
-
 import robust_loss_pytorch.general
 
 '''
@@ -236,7 +234,7 @@ class VisGeneration():
     """
         Produces an image that maximizes a certain class with gradient ascent
     """
-    def __init__(self, model, target_top_n_features, num_clusters, target,penalty, octave, img_name='n03063599', iterations=2001):
+    def __init__(self, model, target_top_n_features, num_clusters, target,penalty, octave, img_name='n03063599', iterations=2001, data_path='/ILSVRC2012/train/'):
         self.mean = [-0.485, -0.456, -0.406]
         self.std = [1/0.229, 1/0.224, 1/0.225]
         self.iterations = iterations
@@ -265,7 +263,7 @@ class VisGeneration():
         outputs = []
         dict_idx = {}
         cpu = torch.device("cpu")
-        for i,image in enumerate(glob.glob(os.path.join('/home/agstergiou/Desktop/ILSVRC2012/train/',img_name,'*'))):
+        for i,image in enumerate(glob.glob(os.path.join(data_path,img_name,'*'))):
             try:
                 image_example_tensor = cv2.imread(image)
                 dict_idx[i]=image
@@ -287,8 +285,6 @@ class VisGeneration():
         # Switch to DataParallel
         self.device_ids = [0,1]
         self.model = torch.nn.DataParallel(self.model, [0,1])
-        #self.penalty = 'module'+self.penalty
-        #self.target = 'module.'+self.target
         self.multigpu = 2
 
         # Reduce dimensionality to 50 w/ PCA
@@ -414,8 +410,6 @@ class VisGeneration():
 
     def generate(self,octave=None):
 
-        #self.created_images = self.original_created_images
-
         _, _, h, w = self.created_images.shape
 
         if (octave is not None):
@@ -458,9 +452,6 @@ class VisGeneration():
 
             if imw > w:
                 if random_crop:
-                    # randomly select a crop
-                    #ox = random.randint(0,imw-224)
-                    #oy = random.randint(0,imh-224)
                     mid_x = (imw-w)/2.
                     width_x = imw-w
                     ox = np.random.normal(mid_x, width_x*self.octave['window'], 1)
@@ -479,8 +470,6 @@ class VisGeneration():
             else:
                 ox = 0
                 oy = 0
-                #if (i%50 == 0):
-                    #self.created_image = imagfe.copy()
 
 
             # Create masks
@@ -502,8 +491,6 @@ class VisGeneration():
                 blurred = iaa.GaussianBlur((sigma))
                 self.created_images = self.created_images.transpose(0,2,3,1).astype(np.float32)
                 blurred_image = blurred(images=self.created_images).astype(np.float32)
-                #blurred_image = cv2.GaussianBlur(self.created_image,(5,5),sigma).astype(np.float32)
-                #filters.gaussian(self.created_image, sigma=sigma, mode='nearest',multichannel=False).astype(np.float32)
 
                 # Combine new image and previous image
                 blurred_image *= np.asarray([mask1,mask1,mask1]).transpose(1,2,0)
@@ -553,11 +540,6 @@ class VisGeneration():
             # Get target activations difference
             act_loss = torch.mean(adaptive.lossfun((out - torch.tensor(self.target_maps, requires_grad=False).to(torch.device('cuda:0')))))
             #act_loss = - quantile_loss(out,torch.tensor(self.target_maps, requires_grad=False).to(torch.device('cuda:0'))).mean(-1)
-            #act_loss = - F.cosine_similarity(out,torch.tensor(self.target_maps, requires_grad=False).to(torch.device('cuda:0')),eps=1e-2).pow(2).mean(-1)
-            #act_loss = F.smooth_l1_loss(out,torch.tensor(self.target_maps, requires_grad=False).to(torch.device('cuda:0')),reduce=False).mean(-1)
-
-            #xs = [b_i for b_i in range(len(self.target_channels)) for c_i in range(len(self.target_channels[b_i]))]
-            #ys = [c_i for b_i in range(len(self.target_channels)) for c_i in range(len(self.target_channels[b_i]))]
 
             if isinstance(class_loss,int):
                 prev_class_loss = 0

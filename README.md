@@ -4,12 +4,12 @@ PyTorch code for class agnostic feature visualisation
 ![supported versions](https://img.shields.io/badge/python-3.x-brightgreen/?style=flat&logo=python&color=green)
 ![Library](https://img.shields.io/badge/library-PyTorch-blue/?style=flat&logo=pytorch&color=informational)
 ![GitHub license](https://img.shields.io/cocoapods/l/AFNetworking)
-![Star](https://img.shields.io/github/stars/https://github.com/alexandrosstergiou/Class-Agnostic-Feature-Visualisation?style=social)
+![Star](https://img.shields.io/github/stars/alexandrosstergiou/Class-Agnostic-Feature-Visualisation?style=social)
 
 --------------------------------------------------------------------------------
 
 ## Abstract
-Visual interpretability of deep learning models has gained significant popularity in recent years as the high level of complexity in Convolutional Neural Networks (CNNs) impose great challenges for understanding of their inner workings. Although many techniques have been proposed for visualizing the class features of these networks, most of them do not provide a clear correspondence between extracted features in layers and the used inputs. This prevents the discovery of stimuli that each layer responds better to, in a high level. We propose an approach for visually interpreting CNN layer features given a target set of images, creating corresponding images that depict the most informative features of that layer. Exploring features in a class-agnostic manner, allows for a greater focus on the feature extractor part of CNNs. We base our method on a dual-objective activation maximization and activation distance minimization loss, without the requirement of a generator network nor any modifications to the original model, limiting the number of FLOPs to only that of the original network. We demonstrate the visualizations quality on widely-used architectures.
+Visual interpretability of Convolutional Neural Networks (CNNs) has gained significant popularity because the complexity of CNNs imposes great challenges for the understanding of their inner workings. Although many techniques have been proposed to visualize class features of CNNs, most of these techniques do not provide a correspondence between inputs and the extracted features in specific layers. This prevents the discovery of stimuli that each layer responds better to. We propose an approach to visually interpret CNN features given a set of images by creating corresponding images that depict the most informative features of a specific layer. Exploring features in a this class-agnostic manner allows for a greater focus on the feature extractor of CNNs. Our method uses on a dual-objective activation maximization and distance minimization loss, without requiring a generator network nor modifications to the original model. This limits the number of FLOPs to that of the original network. We demonstrate the visualization quality on widely-used architectures.
 
 <p align="center">
 <i></i>

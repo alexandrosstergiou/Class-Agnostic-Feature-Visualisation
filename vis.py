@@ -1,3 +1,6 @@
+'''
+---  I M P O R T  S T A T E M E N T S  ---
+'''
 import os
 import glob
 import cv2
@@ -34,6 +37,7 @@ import seaborn as sns
 from matplotlib.offsetbox import TextArea, DrawingArea, OffsetImage, AnnotationBbox
 
 import robust_loss_pytorch.general
+
 
 '''
 ---- S T A R T  O F  D I S T A N C E  F U N C T I O N S ----
@@ -114,15 +118,19 @@ def quantile_loss(input: torch.Tensor,target: torch.Tensor,q: float = 0.75,p: fl
 
 
 
+"""
+---- S T A R T  O F  F U N C T I O N  F O R M A T _ N P _ O U T P U T  ----
 
+    [About]
+        Converter to format WxHx3 and values in range of (0-255).
+
+    [Args]
+        - np_arr: Numpy array of shape 1xWxH or WxH or 3xWxH.
+
+    [Returns]
+        - np_arr: NUmpy array of shape WxHx3.
+"""
 def format_np_output(np_arr):
-    """
-        This is a (kind of) bandaid fix to streamline saving procedure.
-        It converts all the outputs to the same format which is 3xWxH
-        with using sucecssive if clauses.
-    Args:
-        im_as_arr (Numpy array): Matrix of shape 1xWxH or WxH or 3xWxH
-    """
     # Phase/Case 1: The np arr only has 2 dimensions
     # Result: Add a dimension at the beginning
     if len(np_arr.shape) == 2:
@@ -140,31 +148,51 @@ def format_np_output(np_arr):
     if np.max(np_arr) <= 1:
         np_arr = (np_arr*255).astype(np.uint8)
     return np_arr
+"""
+---- E N D  O F  F U N C T I O N  F O R M A T _ N P _ O U T P U T  ----
+"""
 
+"""
+---- S T A R T  O F  F U N C T I O N  S A V E _ I M A G E  ----
+
+    [About]
+        Save a numpy array to an image file.
+
+    [Args]
+        - imgs: List/Numpy array that contains images of shape WxHx3
+        - path: String for the path to save location
+        - iter: Integer for the iteration number to be added in file name
+
+    [Returns]
+        - None
+"""
 def save_image(imgs, basepath, iter):
-    """
-        Saves a numpy matrix or PIL image as an image
-    Args:
-        im_as_arr (Numpy array): Matrix of shape DxWxH
-        path (str): Path to the image
-    """
     for i,im in enumerate(imgs):
         path = os.path.join(basepath,'cluster_{:02d}'.format(i+1),iter)
         if isinstance(im, (np.ndarray, np.generic)):
             im = format_np_output(im)
             im = Image.fromarray(im)
         im.save(path)
+"""
+---- E N D  O F  F U N C T I O N  S A V E _ I M A G E  ----
+"""
 
+"""
+---- S T A R T  O F  P R E P R O C E S S _ I M A G E  ----
 
+    [About]
+        Converter for images from arrays to CNN-friendly format.
+
+    [Args]
+        - imgs: List/Numpy array containing strings of the filepaths
+        - for the images to be loaded
+        - resize_im: Boolean value for image resizing
+
+    [Returns]
+        - im_as_var: PyTorch tensor of shape [Bx3xWxH] with values
+        between (0-1).
+"""
 def preprocess_image(imgs, resize_im=True):
-    """
-        Processes image for CNNs
-    Args:
-        PIL_img (PIL_img): Image to process
-        resize_im (bool): Resize to 224 or not
-    returns:
-        im_as_var (torch variable): Variable that contains processed float tensor
-    """
     # mean and std list for channels (Imagenet)
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
@@ -187,16 +215,26 @@ def preprocess_image(imgs, resize_im=True):
     # Convert to Pytorch variable
     im_as_var = im_as_ten.clone().detach().cuda().requires_grad_(True)
     return im_as_var
+"""
+---- E N D  O F  P R E P R O C E S S _ I M A G E  ----
+"""
 
 
+"""
+---- S T A R T  O F  R E C R A T E _ I M A G E  ----
+
+    [About]
+        Reverse of `image_processing`. Converts images back to
+        numpy arrays from tensors.
+
+    [Args]
+        - im_as_var: PyTorch tensor of shape [Bx3xHxW] corresponding
+        to the image with values (0-1).
+
+    [Returns]
+        - recreated_im: Numpy array of shape [BxHxWx3] with values (0-225).
+"""
 def recreate_image(im_as_var):
-    """
-        Recreates images from a torch variable, sort of reverse preprocessing
-    Args:
-        im_as_var (torch variable): Image to recreate
-    returns:
-        recreated_im (numpy arr): Recreated image in array
-    """
     reverse_mean = [-0.485, -0.456, -0.406]
     reverse_std = [1/0.229, 1/0.224, 1/0.225]
     recreated_im = im_as_var.clone().detach().cpu().data.numpy()
@@ -209,31 +247,88 @@ def recreate_image(im_as_var):
 
     recreated_im = np.uint8(recreated_im).transpose(0, 2, 3, 1)
     return recreated_im
+"""
+---- E N D  O F  R E C R A T E _ I M A G E  ----
+"""
 
 
+"""
+---- S T A R T  O F  C R E A T E _ C I R C U L A R _ M A S K  ----
 
+    [About]
+        Creates a circular mask with a Gaussian distribution.
 
+    [Args]
+        - h: Integer for the image height.
+        - w: Integer for the image width.
+        - centre: Tuple for the mask centre. If None will be
+        the midle of the image.
+        - radius: Integer for the circle radius. If None, it
+        finds the smallest distance possible from the centre and
+        the image borders.
 
-def create_circular_mask(h, w, center=None, radius=None):
+    [Returns]
 
-    if center is None: # use the middle of the image
-        center = (int(w/2), int(h/2))
-    if radius is None: # use the smallest distance between the center and image walls
-        radius = min(center[0], center[1], w-center[0], h-center[1])
+        - recreated_im: Numpy array of the masj with shape [HxW].
+"""
+def create_circular_mask(h, w, centre=None, radius=None):
+
+    if centre is None: # use the middle of the image
+        centre = (int(w/2), int(h/2))
+    if radius is None: # use the smallest distance between the centre and image borders
+        radius = min(centre[0], centre[1], w-centre[0], h-centre[1])
 
     Y, X = np.ogrid[:h, :w]
-    dist_from_center = np.sqrt((X - center[0])**2 + (Y-center[1])**2)
+    dist_from_c = np.sqrt((X - centre[0])**2 + (Y-centre[1])**2)
 
-    mask = dist_from_center <= radius
+    mask = dist_from_c <= radius
     return mask
+"""
+---- E N D  O F  C R E A T E _ C I R C U L A R _ M A S K  ----
+"""
 
 
+'''
+===  S T A R T  O F  C L A S S  V I S G E N E R A T I O N ===
 
+    [About]
+        Function for creating image visualisations from selected CNN layers and channels.
 
+    [Init Args]
+        - features: A `torch.nn.Sequential` object containing the model to be visualised.
+        - target_channels: The integer number of channels to be visualised.
+        - clusters: The integer number of sub-sets/clusters to be used (i.e. facets).
+        - octave: Dictionary of editable sub-parameters:
+          + `scale`: Float for the scale to be used during interpolation w.r.t. the image.
+          + `start_lr`: Float for the initial learning rate.
+          + `end_lr`: Float for the final learning rate value (if same as initial there will be no change in the learning rate).
+          Experiments up to this point only consider (`start_lr`>=`end_lr`).
+          + `start_mask_sigma`: Integer, initial standard deviation value for the gradient mask.
+          + `end_mask_sigma`: Integer, final standard deviation value for the gradient mask (if same as initial there will
+          be no change in the gradient mask sigma). Experiments up to this point only consider (`start_mask_sigma`>=`end_mask_sigma`).
+          + `start_sigma`: Float for initial Gaussian blur sigma value.
+          + `end_sigma`: Float for final Gaussian blur sigma value
+          + `start_denoise_weight`: Integer for initial denoising weight (small weights correspond to more denoising ~ smaller similarity to input)
+          + `end_denoise_weight`: Integer for final denoising weight
+          + `start_lambda`: Float for initial lambda value used for scaling the regularized layers.
+          + `end_lambda`: Float for final lambda value for regularization. (`start_lambda==end_lambda` would correspond to no change in the regularization scale)
+          + `window`: Integer for the size of the window area to be used for cropping.
+          + `window_step`: Integer for cropping step.
+          + `brightness_step`: Integer number of iterations after which a small value in the overall brightness is added.
+        - img_name: String for the name of the folder containing all the images. This can for example correspond to a specific ImageNet class.
+        - target: String for the target layer to be visualized. If unsure, use a loop to print all the modules:
+        - penalty: String for the name of the layer to apply regularisation to.
+        - iterations: Integer for the total number of iterations.
+        - data_path: String for the full directory where the images to be used are. (do not include the specific `img_name` folder this is added at the end of
+        the path during the class initialisation)
+
+    [Methods]
+        - __init__ : Class initialiser, takes as argument the video path string.
+        - get_activation:
+        - find_new_val:
+        - generate:
+'''
 class VisGeneration():
-    """
-        Produces an image that maximizes a certain class with gradient ascent
-    """
     def __init__(self, model, target_top_n_features, num_clusters, target,penalty, octave, img_name='n03063599', iterations=2001, data_path='/ILSVRC2012/train/'):
         self.mean = [-0.485, -0.456, -0.406]
         self.std = [1/0.229, 1/0.224, 1/0.225]
@@ -640,8 +735,9 @@ class VisGeneration():
 
         self.epochs = tot_i
         return avg_loss/tot_i
-
-
+'''
+===  E N D  O F  C L A S S  V I S G E N E R A T I O N ===
+'''
 
 
 

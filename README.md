@@ -12,9 +12,14 @@ PyTorch code for class agnostic feature visualisation
 Visual interpretability of Convolutional Neural Networks (CNNs) has gained significant popularity because the complexity of CNNs imposes great challenges for the understanding of their inner workings. Although many techniques have been proposed to visualize class features of CNNs, most of these techniques do not provide a correspondence between inputs and the extracted features in specific layers. This prevents the discovery of stimuli that each layer responds better to. We propose an approach to visually interpret CNN features given a set of images by creating corresponding images that depict the most informative features of a specific layer. Exploring features in a this class-agnostic manner allows for a greater focus on the feature extractor of CNNs. Our method uses on a dual-objective activation maximization and distance minimization loss, without requiring a generator network nor modifications to the original model. This limits the number of FLOPs to that of the original network. We demonstrate the visualization quality on widely-used architectures.
 
 <p align="center">
-<i></i>
+<i>To appear in <a href="http://2021.ieeeicip.org/">IEEE International Conference on Image Processing (ICIP) 2021</a> &nbsp;&nbsp;&nbsp;</i>
 <br>
-<a href="#" target="blank">[arXiv preprint (coming soon)]</a>
+<a href="https://arxiv.org/abs/2101.12447" target="_blank">[arXiv preprint]</a>
+ &nbsp;&nbsp;&nbsp;
+<a href="https://ieeexplore.ieee.org/document/9506287/" target="_blank">[IEEE Xplore]</a>
+ &nbsp;&nbsp;&nbsp;
+<a href="https://www.youtube.com/watch?v=Au3jaUdnPKM&feature=youtu.be" target="_blank">[video presentation]</a>
+</p>
 
 
 <p align="center">
@@ -82,7 +87,13 @@ for name, module in features.named_modules():
 
 ## Citation
 ```
-To be updated soon
+@inproceedings{stergiou2021mind,
+    title = {The Mind's Eye: Visualizing Class-Agnostic Features of CNNs},
+    author={Stergiou, Alexandros},
+    booktitle={IEEE International Conference on Image Processing (ICIP)},
+    year={2021},
+    organization={IEEE}
+    }
 ```
 
 ## Licence
